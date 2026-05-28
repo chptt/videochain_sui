@@ -10,15 +10,12 @@ import { createDAppKit } from "@mysten/dapp-kit-core";
 import { DAppKitProvider } from "@mysten/dapp-kit-react";
 import { registerSlushWallet } from "@mysten/slush-wallet";
 import { SuiJsonRpcClient, getJsonRpcFullnodeUrl } from "@mysten/sui/jsonRpc";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? "testnet") as
   | "testnet" | "mainnet" | "devnet";
 
 const RPC_URL =
   process.env.NEXT_PUBLIC_SUI_RPC_URL ?? getJsonRpcFullnodeUrl(NETWORK);
-
-const queryClient = new QueryClient();
 
 const dAppKit = createDAppKit({
   networks: [NETWORK],
@@ -38,11 +35,7 @@ if (typeof window !== "undefined") {
 }
 
 export function SuiProviders({ children }: { children: React.ReactNode }) {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <DAppKitProvider dAppKit={dAppKit}>{children}</DAppKitProvider>
-    </QueryClientProvider>
-  );
+  return <DAppKitProvider dAppKit={dAppKit}>{children}</DAppKitProvider>;
 }
 
 export { dAppKit };

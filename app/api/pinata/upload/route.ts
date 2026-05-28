@@ -1,39 +1,46 @@
-import { NextResponse } from "next/server";
-import { pinJSONToPinata } from "@/lib/pinata";
-import { v4 as uuidv4 } from "uuid";
+/**
+ * POST /api/pinata/upload
+ * Proxy endpoint for Pinata uploads (keeps JWT server-side)
+ * Only accessible to authenticated users
+ */
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { title, description } = body;
+import { NextRequest, NextResponse } from "next/server";
+import { withAuth } from "@/lib/auth";
+import { uploadJsonToPinata } from "@/lib/pinata";
 
-    if (!title) {
-      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+export async function POST(req: NextRequest) {
+  return withAuth(req, async (user) => {
+    try {
+      const body = await req.json();
+
+      if (!body.data || !body.metadataName) {
+        return NextResponse.json(
+          { error: "data and metadataName are required" },
+          { status: 400 }
+        );
+      }
+
+      // Prevent uploading sensitive data through this endpoint
+      if (
+        body.data.encryptedUrl ||
+        body.data.iv ||
+        body.data.authTag
+      ) {
+        return NextResponse.json(
+          { error: "Cannot upload encrypted video metadata through this endpoint" },
+          { status: 403 }
+        );
+      }
+
+      const cid = await uploadJsonToPinata(body.data, body.metadataName);
+
+      return NextResponse.json({ cid });
+    } catch (err) {
+      console.error("Pinata upload error:", err);
+      return NextResponse.json(
+        { error: "Upload failed" },
+        { status: 500 }
+      );
     }
-
-    const videoId = uuidv4();
-    const data = {
-      videoId,
-      title,
-      description: description || "",
-      createdAt: new Date().toISOString(),
-    };
-
-    const result = await pinJSONToPinata(data, `video-${videoId}`);
-
-    return NextResponse.json({
-      success: true,
-      video: {
-        videoId,
-        cid: result.IpfsHash,
-        title,
-      },
-    });
-  } catch (error) {
-    console.error("[Pinata Upload] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to upload to IPFS" },
-      { status: 500 }
-    );
-  }
+  });
 }
