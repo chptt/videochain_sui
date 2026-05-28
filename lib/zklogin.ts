@@ -125,11 +125,19 @@ export function generateGoogleOAuthUrl(nonce: string, requestUrl?: string): stri
   if (!redirectUri && requestUrl) {
     try {
       const url = new URL(requestUrl);
-      redirectUri = `${url.origin}/api/auth/zklogin/callback`;
+      let origin = url.origin;
+      // Force HTTPS in production
+      if (process.env.NODE_ENV === "production" && origin.startsWith("http://")) {
+        origin = origin.replace("http://", "https://");
+      }
+      redirectUri = `${origin}/api/auth/zklogin/callback`;
     } catch (e) {
       // Fallback to localhost if URL parsing fails
       redirectUri = "http://localhost:3000/api/auth/zklogin/callback";
     }
+  } else if (redirectUri && process.env.NODE_ENV === "production" && redirectUri.startsWith("http://")) {
+    // If we have a redirect URI but it's http in production, upgrade to https
+    redirectUri = redirectUri.replace("http://", "https://");
   }
 
   if (!clientId || !redirectUri) {
@@ -165,11 +173,19 @@ export async function exchangeCodeForTokens(code: string, requestUrl?: string): 
   if (!redirectUri && requestUrl) {
     try {
       const url = new URL(requestUrl);
-      redirectUri = `${url.origin}/api/auth/zklogin/callback`;
+      let origin = url.origin;
+      // Force HTTPS in production
+      if (process.env.NODE_ENV === "production" && origin.startsWith("http://")) {
+        origin = origin.replace("http://", "https://");
+      }
+      redirectUri = `${origin}/api/auth/zklogin/callback`;
     } catch (e) {
       // Fallback to localhost if URL parsing fails
       redirectUri = "http://localhost:3000/api/auth/zklogin/callback";
     }
+  } else if (redirectUri && process.env.NODE_ENV === "production" && redirectUri.startsWith("http://")) {
+    // If we have a redirect URI but it's http in production, upgrade to https
+    redirectUri = redirectUri.replace("http://", "https://");
   }
 
   if (!clientId || !clientSecret || !redirectUri) {
