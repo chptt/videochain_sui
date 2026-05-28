@@ -117,9 +117,20 @@ export async function verifyGoogleToken(
 /**
  * Generate Google OAuth URL for zkLogin
  */
-export function generateGoogleOAuthUrl(nonce: string): string {
+export function generateGoogleOAuthUrl(nonce: string, requestUrl?: string): string {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  let redirectUri = process.env.GOOGLE_REDIRECT_URI;
+
+  // If no explicit redirect URI, try to determine from request or environment
+  if (!redirectUri && requestUrl) {
+    try {
+      const url = new URL(requestUrl);
+      redirectUri = `${url.origin}/api/auth/zklogin/callback`;
+    } catch (e) {
+      // Fallback to localhost if URL parsing fails
+      redirectUri = "http://localhost:3000/api/auth/zklogin/callback";
+    }
+  }
 
   if (!clientId || !redirectUri) {
     throw new Error("Google OAuth not configured");
@@ -141,14 +152,25 @@ export function generateGoogleOAuthUrl(nonce: string): string {
 /**
  * Exchange authorization code for tokens
  */
-export async function exchangeCodeForTokens(code: string): Promise<{
+export async function exchangeCodeForTokens(code: string, requestUrl?: string): Promise<{
   id_token: string;
   access_token: string;
   refresh_token?: string;
 }> {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  let redirectUri = process.env.GOOGLE_REDIRECT_URI;
+
+  // If no explicit redirect URI, try to determine from request or environment
+  if (!redirectUri && requestUrl) {
+    try {
+      const url = new URL(requestUrl);
+      redirectUri = `${url.origin}/api/auth/zklogin/callback`;
+    } catch (e) {
+      // Fallback to localhost if URL parsing fails
+      redirectUri = "http://localhost:3000/api/auth/zklogin/callback";
+    }
+  }
 
   if (!clientId || !clientSecret || !redirectUri) {
     throw new Error("Google OAuth credentials not configured");
